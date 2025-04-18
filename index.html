@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Captura Inteligente + Chat IA</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <div class="main-container">
+    <!-- Chat con IA -->
+    <div class="chat-container">
+      <h2>💬 Chat con IA</h2>
+      <div id="chat"></div>
+      <div id="imagePreviewContainer" style="display: none; position: relative; margin-bottom: 10px;">
+        <img id="imagePreviewThumb" src="" alt="Imagen pegada" style="height: 60px; border-radius: 5px;">
+        <button onclick="eliminarImagenPegada()" style="position: absolute; top: 0; left: 0; background: #fff; border: none; font-weight: bold; cursor: pointer;">✖</button>
+      </div>
+      
+      <textarea id="message" placeholder="Escribe algo o pega una imagen..."></textarea>
+      <button onclick="sendMessage()">Enviar</button>
+    </div>
+
+    <!-- Captura de pantalla -->
+    <div class="capture-container">
+      <h2>📸 Captura de Pantalla</h2>
+      <button onclick="capturarPantalla()">Capturar Pantalla</button>
+      <canvas id="previewCanvas"></canvas>
+      <textarea id="textoExtra" placeholder="Agrega texto si quieres..."></textarea>
+      <div class="botones">
+        <button onclick="copiarImagen()">Copiar imagen</button>
+        <button onclick="enviarCaptura()">Enviar a IA</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
