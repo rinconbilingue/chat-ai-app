@@ -69,7 +69,7 @@ async function sendMessage() {
   const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch('https://chat-ai-app-rinconbilingues-projects.vercel.app/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ history: chatHistory }),
@@ -175,7 +175,7 @@ async function enviarCaptura() {
   const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch('https://chat-ai-app-rinconbilingues-projects.vercel.app/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ history: chatHistory }),
