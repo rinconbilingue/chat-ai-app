@@ -59,7 +59,7 @@ async function sendMessage() {
 
   chatHistory.push(newEntry);
 
-  const res = await fetch('http://localhost:3000/chat', {
+  const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ history: chatHistory })
@@ -154,7 +154,7 @@ async function enviarCaptura() {
 
   document.getElementById("textoExtra").value = "";
 
-  const res = await fetch('http://localhost:3000/chat', {
+  const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ history: chatHistory })
