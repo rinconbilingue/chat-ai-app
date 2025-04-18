@@ -3,7 +3,6 @@ const chat = document.getElementById('chat');
 const messageInput = document.getElementById('message');
 let pastedImageBase64 = null;
 
-// Manejo de imagen pegada desde el portapapeles
 document.addEventListener('paste', (event) => {
   const items = event.clipboardData.items;
   for (let item of items) {
@@ -35,43 +34,6 @@ function appendMessage(sender, text, role) {
   MathJax.typeset();
 }
 
-// ✅ NUEVA función reutilizable para enviar solicitud a la IA con manejo de errores y timeout
-async function enviarAIA(history) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000); // 10s
-
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ history }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('Respuesta no OK:', errorText);
-      throw new Error(`Error ${res.status}: ${errorText}`);
-    }
-
-    const data = await res.json();
-    return data.response;
-
-  } catch (err) {
-    clearTimeout(timeout);
-
-    console.error('Error al comunicarse con IA:', err);
-
-    if (err.name === 'AbortError') {
-      return '❌ Tiempo de espera agotado. Intenta de nuevo.';
-    }
-
-    return '❌ Ocurrió un error al comunicarte con la IA.';
-  }
-}
-
 async function sendMessage() {
   const message = messageInput.value.trim();
   if (!message && !pastedImageBase64) return;
@@ -97,13 +59,37 @@ async function sendMessage() {
 
   chatHistory.push(newEntry);
 
-  const response = await enviarAIA(chatHistory);
-  appendMessage('IA', response, 'ai');
+  // Limitar el historial a los últimos 10 mensajes
+  if (chatHistory.length > 10) {
+    chatHistory = chatHistory.slice(-10);
+  }
 
-  chatHistory.push({
-    role: 'assistant',
-    content: [{ type: 'text', text: response }]
-  });
+  // Timeout + abort controller
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history: chatHistory }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) throw new Error("Respuesta del servidor no OK");
+
+    const data = await res.json();
+    appendMessage('IA', data.response, 'ai');
+    chatHistory.push({
+      role: 'assistant',
+      content: [{ type: 'text', text: data.response }]
+    });
+  } catch (error) {
+    console.error("Error al comunicarse con IA:", error);
+    appendMessage('Sistema', '⚠️ No se pudo obtener respuesta. Intenta de nuevo.', 'error');
+  }
 }
 
 async function capturarPantalla() {
@@ -181,13 +167,35 @@ async function enviarCaptura() {
     ]
   });
 
+  if (chatHistory.length > 10) {
+    chatHistory = chatHistory.slice(-10);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history: chatHistory }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) throw new Error("Respuesta del servidor no OK");
+
+    const data = await res.json();
+    appendMessage('IA', data.response, 'ai');
+    chatHistory.push({
+      role: 'assistant',
+      content: [{ type: 'text', text: data.response }]
+    });
+  } catch (error) {
+    console.error("Error al comunicarse con IA:", error);
+    appendMessage('Sistema', '⚠️ No se pudo obtener respuesta. Intenta de nuevo.', 'error');
+  }
+
   document.getElementById("textoExtra").value = "";
-
-  const response = await enviarAIA(chatHistory);
-  appendMessage('IA', response, 'ai');
-
-  chatHistory.push({
-    role: 'assistant',
-    content: [{ type: 'text', text: response }]
-  });
 }
