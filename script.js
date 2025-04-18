@@ -3,6 +3,7 @@ const chat = document.getElementById('chat');
 const messageInput = document.getElementById('message');
 let pastedImageBase64 = null;
 
+// Manejo de imagen pegada desde el portapapeles
 document.addEventListener('paste', (event) => {
   const items = event.clipboardData.items;
   for (let item of items) {
@@ -34,6 +35,43 @@ function appendMessage(sender, text, role) {
   MathJax.typeset();
 }
 
+// ✅ NUEVA función reutilizable para enviar solicitud a la IA con manejo de errores y timeout
+async function enviarAIA(history) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10s
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Respuesta no OK:', errorText);
+      throw new Error(`Error ${res.status}: ${errorText}`);
+    }
+
+    const data = await res.json();
+    return data.response;
+
+  } catch (err) {
+    clearTimeout(timeout);
+
+    console.error('Error al comunicarse con IA:', err);
+
+    if (err.name === 'AbortError') {
+      return '❌ Tiempo de espera agotado. Intenta de nuevo.';
+    }
+
+    return '❌ Ocurrió un error al comunicarte con la IA.';
+  }
+}
+
 async function sendMessage() {
   const message = messageInput.value.trim();
   if (!message && !pastedImageBase64) return;
@@ -59,17 +97,12 @@ async function sendMessage() {
 
   chatHistory.push(newEntry);
 
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ history: chatHistory })
-  });
+  const response = await enviarAIA(chatHistory);
+  appendMessage('IA', response, 'ai');
 
-  const data = await res.json();
-  appendMessage('IA', data.response, 'ai');
   chatHistory.push({
     role: 'assistant',
-    content: [{ type: 'text', text: data.response }]
+    content: [{ type: 'text', text: response }]
   });
 }
 
@@ -95,10 +128,8 @@ async function capturarPantalla() {
     if (err.name !== 'NotAllowedError') {
       alert("Error al capturar pantalla: " + err);
     }
-    // Si fue cancelado por el usuario, simplemente no hacemos nada
   }
 }
-
 
 async function copiarImagen() {
   const canvas = document.getElementById("previewCanvas");
@@ -140,10 +171,8 @@ async function enviarCaptura() {
     appendMessage('Tú', textoExtra, 'user');
   }
 
-  // Si no hay texto, no lo mostramos pero lo enviamos internamente
   const mensajeOculto = textoExtra || "Please solve this briefly, just the answer.";
 
-  // Agregar al historial
   chatHistory.push({
     role: 'user',
     content: [
@@ -154,16 +183,11 @@ async function enviarCaptura() {
 
   document.getElementById("textoExtra").value = "";
 
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ history: chatHistory })
-  });
+  const response = await enviarAIA(chatHistory);
+  appendMessage('IA', response, 'ai');
 
-  const data = await res.json();
-  appendMessage('IA', data.response, 'ai');
   chatHistory.push({
     role: 'assistant',
-    content: [{ type: 'text', text: data.response }]
+    content: [{ type: 'text', text: response }]
   });
 }
